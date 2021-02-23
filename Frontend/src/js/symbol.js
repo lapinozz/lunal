@@ -21,9 +21,50 @@ export default class Symbol
 		klineIntervals.forEach((i) => this.klines[i] = []);
 	}
 
-	getKlines(interval)
+	getKlines(interval, timeStart = undefined, timeEnd = undefined)
 	{
-		return this.klines[interval];
+		let klines = this.klines[interval];
+		if(!klines)
+		{
+			return [];
+		}
+
+		let startIndex = undefined;
+		let endIndex = undefined;
+
+		if(timeStart === undefined)
+		{
+			startIndex = 0;
+		}
+		else
+		{
+			startIndex = klines.findIndex(k => {
+				return k.midTime >= timeStart;
+			});
+
+			if(startIndex < 0)
+			{
+				startIndex = 0;
+			}
+		}
+
+		if(timeEnd === undefined)
+		{
+			endIndex = 0;
+		}
+		else
+		{
+			endIndex = [...klines].reverse().findIndex(k => {
+				return k.midTime <= timeEnd;
+			});
+
+			if(endIndex < 0)
+			{
+				endIndex = klines.length;
+			}
+		}
+		
+		return klines.slice(startIndex, endIndex);
 	}
 	
 	setFees(feeData)

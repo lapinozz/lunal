@@ -17,14 +17,14 @@ module.exports = {
       },
       {
       	test: /\.(png|jpe?g|gif|svg|ttf|ico)$/,
-	  	use: [{
-	      //using file-loader
-	      loader: 'file-loader',
-	      options: {
-	        outputPath: "assets"
-	      }
-	    }]
-      }
+  	  	use: [{
+  	      //using file-loader
+  	      loader: 'file-loader',
+  	      options: {
+  	        outputPath: "assets"
+  	      }
+  	    }],
+      },
     ]
   },
   optimization: {
@@ -36,7 +36,7 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "src", "index.html"),
-      favicon: "./src/favicon.ico"
+      favicon: "./src/assets/icons/favicon.ico"
     })
   ],
   output: {

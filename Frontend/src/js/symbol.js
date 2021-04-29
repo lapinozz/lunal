@@ -50,7 +50,7 @@ export default class Symbol
 
 		if(timeEnd === undefined)
 		{
-			endIndex = 0;
+			endIndex = klines.length;
 		}
 		else
 		{

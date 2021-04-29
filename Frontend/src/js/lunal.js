@@ -37,57 +37,171 @@ export default class Lunal
 		return this.symbols[name];
 	}
 
+	initOption()
+	{
+		const rollings = [1, 2, 3, 5, 10, 20, 30, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
+
+		this.options = {
+			symbol: {
+				type: 'select',
+				default: 'ETHBTC', 
+			},
+			interval: {
+				type: 'select',
+				default: '5m',
+				values: klineIntervals
+			},
+			rollingWindow: {
+				type: 'select',
+				default: 5,
+				values: rollings,
+				name: 'Rolling Window'
+			},
+		};
+
+		const header = $('.page-header');
+
+		for(const id in this.options)
+		{
+			const option = this.options[id];
+			option.id = id;
+
+			if(!option.name)
+			{
+				option.name = id.charAt(0).toUpperCase() + id.slice(1);
+			}
+
+			const optionContainer = $('<div>');
+			optionContainer.addClass('option-container');
+			header.append(optionContainer);
+
+			const optionLabel = $('<div>');
+			optionContainer.append(optionLabel);
+			optionLabel.addClass('option-label');
+			optionLabel.text(option.name);
+
+			if(option.type == 'select')
+			{
+				option.div = $('<select>');
+				optionContainer.append(option.div);
+				option.div.change(() => {
+					const value = option.div.val();
+					this.setOptionValue(id, value, true);
+				});
+			}
+
+			if(option.values)
+			{
+				this.setOptionValues(id, option.values);
+			}
+
+			option.savedValue = localStorage.getItem('option-' + id);
+			if(option.savedValue || option.default)
+			{
+				this.setOptionValue(id, option.savedValue || option.default, true);
+			}
+		}
+		
+		const resetButton = $('<button>');
+		resetButton.text('Reset');
+		resetButton.addClass('reset');
+		header.append(resetButton);
+		resetButton.click(() => {
+			for(const id in this.options)
+			{
+				const option = this.options[id];
+
+				if(option.default)
+				{
+					this.setOptionValue(id, option.default, true);
+				}
+			}
+		});
+	}
+
+	getOptionValue(id)
+	{
+		const option = this.options[id];
+		if(!option) return undefined;
+
+		return option.value;
+	}
+
+	setOptionValues(id, values)
+	{
+		const option = this.options[id];
+		if(!option) return;
+
+		if(option.type = 'select')
+		{
+			option.div.html('');
+			option.div.append(values.map(v => {
+				const option = $("<option>");
+				option[0].value = v;
+				option[0].name = v;
+				option[0].label = v;
+				return option;
+			}))
+		}
+
+		if(option.value)
+		{
+			this.setOptionValue(id, option.value, true);
+		}
+	}
+
+	setOptionValue(id, value, triggerChange = false)
+	{
+		const option = this.options[id];
+		if(!option) return;
+
+		const prevVal = option.value;
+		option.value = value;
+
+		if(option.type = 'select')
+		{
+			option.div.val(value);
+		}
+
+		if(triggerChange)
+		{
+			this.onOptionChanged(id, prevVal, value);
+		}
+	}
+
+	onOptionChanged(id, prevVal, value)
+	{
+		localStorage.setItem('option-' + id, value);
+
+		if(id == 'symbol' || id == 'interval')
+		{
+			this.fetchData();
+		}
+		else if(id == 'rollingWindow')
+		{
+			this.updateChart();
+		}	
+	}
+
 	buildPage()
 	{
 		const body = document.body;
-
-		this.symbolSelect = $("<select>");
-		this.symbolSelect.change(this.fetchData);
-		$(body).append(this.symbolSelect);
-		
-		this.intervalSelect = $("<select>");
-		this.intervalSelect.change(this.fetchData);
-		$(body).append(this.intervalSelect);
-		this.intervalSelect.append(klineIntervals.map(i => {
-			const option = $("<option>");
-			option[0].value = i;
-			option[0].name = i;
-			option[0].label = i;
-			return option;
-		}));
-		this.intervalSelect.val(klineIntervals[2]);
-		
-		this.rollingAverageSelect = $("<select>");
-		this.rollingAverageSelect.change(this.updateChart);
-		$(body).append(this.rollingAverageSelect);
-		const rollings = [1, 2, 3, 5, 10, 20, 30, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
-		this.rollingAverageSelect.append(rollings.map(i => {
-			const option = $("<option>");
-			option[0].value = i;
-			option[0].name = i;
-			option[0].label = i;
-			return option;
-		}));
-		this.rollingAverageSelect.val(5);
-
-		this.chartDiv = $("<div>");
-		$(body).append(this.chartDiv);
-
-		this.chart = new ApexCharts(this.chartDiv[0], defaultChartOptions);
-		this.chart.render();
 	}
 
 	query(obj)
 	{
-		this.ws.send(JSON.stringify(obj));
+		if(this.ws && this.ws.readyState === WebSocket.OPEN)
+		{
+			this.ws.send(JSON.stringify(obj));
+		}
 	}
 
 	fetchData()
 	{
 		this.query({
 			type: MSG_KLINES,
-			symbol: this.symbolSelect[0].value,
-			interval: this.intervalSelect[0].value 
+			symbol: this.getOptionValue('symbol'),
+			interval: this.getOptionValue('interval') 
 		});
 	}
 
@@ -104,25 +218,13 @@ export default class Lunal
 		{
 			this.exchangeInfo = data;
 
-			console.log(this.exchangeInfo)
-
 			for(const s of this.exchangeInfo.symbols)
 			{
 				const symbol = new Symbol(s);
 				this.symbols[symbol.name] = symbol;
 			}
 
-			const symbols = this.exchangeInfo.symbols.map(e => e.symbol).sort();
-			this.symbolSelect.html('');
-			this.symbolSelect.append(Object.keys(this.symbols).map(s => {
-				const option = $("<option>");
-				option[0].value = s;
-				option[0].name = s;
-				option[0].label = s;
-				return option;
-			}))
-			this.symbolSelect[0].value = "ETHBTC";
-			this.symbolSelect.change();
+			this.setOptionValues('symbol', Object.keys(this.symbols).sort());
 			console.timeEnd('symbols');
 		}
 		else if(type == MSG_FEES)
@@ -135,7 +237,6 @@ export default class Lunal
 					symbol.setFees(feeData);
 				}
 			}
-			console.log(data)
 
 			this.updateChart();
 		}
@@ -151,12 +252,63 @@ export default class Lunal
 		}
 	}
 
+	updateSeriesVisibility()
+	{
+		const chart = this.chart;
+		if(!chart) return;
+
+		const hiddens = JSON.parse(localStorage.getItem('hiddenSeries') || '[]');
+
+		setTimeout(() => {
+			for(const series of chart.w.globals.seriesNames)
+			{
+				if(hiddens.includes(series))
+				{
+					chart.hideSeries(series);
+				}
+				else
+				{
+					chart.showSeries(series);
+				}
+			}
+		});
+	}
+
 	updateChart()
 	{
+		if(!this.chart)
+		{
+			this.chart = new ApexCharts($(".main-chart-parent")[0], defaultChartOptions);
+			this.chart.render();
+			this.chart.updateOptions({
+				chart: {
+					events: {
+						legendClick: (ctx, index, config) => {
+							const name = config.config.series[index].name;
+
+							let hiddens = JSON.parse(localStorage.getItem('hiddenSeries') || '[]');
+
+							let visible = hiddens.includes(name);
+
+							hiddens = hiddens.filter(h => h != name);
+							if(!visible)
+							{
+								hiddens.push(name);
+							}
+
+							localStorage.setItem('hiddenSeries', JSON.stringify(hiddens));
+							this.updateSeriesVisibility();
+						}
+					}
+				}
+			});
+		}
+
 		console.time('updateChart');
-		const interval = this.intervalSelect[0].value;
-		const symbol = this.getSymbol(this.symbolSelect[0].value);
-		const rollingAverageLength = parseInt(this.rollingAverageSelect[0].value);
+
+		const interval = this.getOptionValue('interval');
+		const symbol = this.getSymbol(this.getOptionValue('symbol'));
+		const rollingAverageLength = parseInt(this.getOptionValue('rollingWindow'));
 
 		console.log('things', symbol, interval, rollingAverageLength)
 
@@ -167,13 +319,11 @@ export default class Lunal
 		bot.setRollingAverageLength(rollingAverageLength);
 
 		const chartData = bot.update();
-		
 		console.timeEnd('updateChart');
-
-		console.log(chartData)
 
 		console.time('drawChart');
 		this.chart.updateOptions(bot.makeChartData());
+		this.updateSeriesVisibility();
 		console.timeEnd('drawChart');
 	}
 
@@ -192,6 +342,8 @@ export default class Lunal
 			type: MSG_FEES,
 			timestamp: Date.now() + ""
 		});
+
+		this.fetchData();
 	}
 
 	constructor()
@@ -200,6 +352,7 @@ export default class Lunal
 
 		this.bot = new Bot();
 
+		this.initOption();
 		this.buildPage();
 
 		this.ws = new WebSocket("ws://localhost:8080/echo");

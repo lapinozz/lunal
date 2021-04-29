@@ -31,6 +31,7 @@
   "dependencies": {
     "apexcharts": "3.22.2",
     "pako": "^2.0.2",
-    "seedrandom": "^3.0.5"
+    "seedrandom": "^3.0.5",
+    "technicalindicators": "^3.1.0"
   }
 }

@@ -21,6 +21,11 @@ const defaultChartOptions = {
 				enabled: true,
 				speed: 50
 			}
+		},
+	},
+	legend: {
+		onItemClick: {
+			toggleDataSeries: false
 		}
 	},
     tooltip: {

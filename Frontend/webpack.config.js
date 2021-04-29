@@ -39,7 +39,11 @@ module.exports = {
       favicon: "./src/assets/icons/favicon.ico"
     })
   ],
+  resolve: {
+    mainFields: ["module", "main"]
+  },
   output: {
+     publicPath: '',
   },
   devServer: {
     contentBase: "./src",

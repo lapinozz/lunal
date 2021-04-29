@@ -1,0 +1,32 @@
+.page-header
+{
+	position: relative;
+	display: flex;
+
+	.logo
+	{
+		width: 2rem;
+		height: 2rem;
+		background-image: url("../assets/icons/favicon-32x32.png");
+	}
+
+	.option-container
+	{
+		display: flex;
+		margin: 0.5rem;
+
+		.option-label
+		{
+			margin-right: 0.25rem;
+		}
+	}
+
+	.reset
+	{
+		position: absolute;
+		right: 1rem;
+		height: 75%;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+}
